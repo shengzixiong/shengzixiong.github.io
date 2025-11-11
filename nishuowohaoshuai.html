@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搞怪抽奖大转盘</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #FF6B8B;
+            --secondary: #6A67CE;
+            --accent: #FFD166;
+            --dark: #2E2E3A;
+            --light: #F9F9F9;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            color: var(--light);
+        }
+        
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .page {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.8s ease, opacity 0.8s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .lottery-page {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .result-page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transform: translateX(100%);
+            display: none;
+        }
+        
+        .page.active {
+            opacity: 1;
+            transform: translateX(0);
+            display: flex;
+        }
+        
+        .page.inactive {
+            opacity: 0;
+            transform: translateX(-100%);
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            text-align: center;
+            background: linear-gradient(to right, var(--accent), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        h1:after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(to right, var(--accent), var(--primary));
+            border-radius: 2px;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            text-align: center;
+            opacity: 0.9;
+            max-width: 600px;
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 40px;
+        }
+        
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #FF9A9E 0deg 45deg,
+                #FFD166 45deg 90deg,
+                #06D6A0 90deg 135deg,
+                #118AB2 135deg 180deg,
+                #073B4C 180deg 225deg,
+                #EF476F 225deg 270deg,
+                #7209B7 270deg 315deg,
+                #F15BB5 315deg 360deg
+            );
+            position: relative;
+            transition: transform 4s cubic-bezier(0.2, 0.8, 0.3, 1);
+            box-shadow: 0 0 0 15px rgba(255, 255, 255, 0.2), 0 0 30px rgba(0, 0, 0, 0.3);
+            border: 8px solid white;
+        }
+        
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        
+        .wheel-section {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: bottom right;
+            left: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-left: 40px;
+        }
+        
+        .wheel-text {
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            transform: rotate(45deg);
+            width: 100px;
+        }
+        
+        .pointer {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 70px;
+            background: var(--accent);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 10;
+            filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.3));
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            color: var(--dark);
+            font-size: 1.2rem;
+        }
+        
+        .spin-button {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .spin-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .spin-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .spin-button:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: 0.5s;
+        }
+        
+        .spin-button:hover:before {
+            left: 100%;
+        }
+        
+        .spin-button i {
+            font-size: 1.3rem;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            font-style: italic;
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        .counter {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            color: var(--accent);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* 结果页面样式 */
+        .result-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+        }
+        
+        .trophy {
+            font-size: 8rem;
+            color: var(--accent);
+            margin: 20px 0;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+            animation: bounce 2s infinite alternate;
+        }
+        
+        .prize-name {
+            font-size: 2.5rem;
+            margin: 20px 0;
+            text-align: center;
+            background: linear-gradient(to right, var(--accent), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+        
+        .prize-description {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 600px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .action-button {
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .share-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .share-button:hover {
+            background: white;
+            color: var(--dark);
+        }
+        
+        .again-button {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .again-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 15px;
+            height: 15px;
+            background: var(--accent);
+            top: 0;
+            opacity: 0;
+            z-index: 100;
+        }
+        
+        .floating-element {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0;
+            z-index: 5;
+        }
+        
+        /* 动画 */
+        @keyframes titleBounce {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+        
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-20px); }
+        }
+        
+        @keyframes wobble {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .wheel-container {
+                width: 300px;
+                height: 300px;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .prize-name {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .action-button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .page {
+                padding: 25px;
+            }
+            
+            .wheel-container {
+                width: 250px;
+                height: 250px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 抽奖页面 -->
+        <div class="page lottery-page active">
+            <h1>搞怪抽奖大转盘</h1>
+            <p class="subtitle">试试你的手气，看看能抽到什么意想不到的"惊喜"！</p>
+            
+            <div class="wheel-container">
+                <div class="pointer">
+                    <i class="fas fa-caret-down"></i>
+                </div>
+                <div class="wheel" id="wheel">
+                    <!-- 转盘区域将通过JavaScript生成 -->
+                </div>
+                <div class="wheel-center">
+                    <i class="fas fa-gift"></i>
+                </div>
+            </div>
+            
+            <button class="spin-button" id="spinButton">
+                <i class="fas fa-play"></i>
+                开始抽奖
+            </button>
+            
+            <p class="instructions">点击按钮开始抽奖，转盘停止后显示您的奖品</p>
+            <div class="counter">
+                <i class="fas fa-history"></i>
+                今日已抽奖: <span id="count">0</span> 次
+            </div>
+        </div>
+        
+        <!-- 结果页面 -->
+        <div class="page result-page">
+            <div class="result-content">
+                <h1>恭喜您!</h1>
+                <p class="subtitle">您抽中了以下奖品</p>
+                
+                <div class="trophy">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                
+                <div class="prize-name" id="prizeName">奖品名称</div>
+                <p class="prize-description" id="prizeDescription">奖品描述将在这里显示</p>
+                
+                <div class="action-buttons">
+                    <button class="action-button share-button">
+                        <i class="fas fa-share-alt"></i>
+                        分享结果
+                    </button>
+                    <button class="action-button again-button" id="againButton">
+                        <i class="fas fa-redo"></i>
+                        再抽一次
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const wheel = document.getElementById('wheel');
+            const spinButton = document.getElementById('spinButton');
+            const countElement = document.getElementById('count');
+            const lotteryPage = document.querySelector('.lottery-page');
+            const resultPage = document.querySelector('.result-page');
+            const prizeName = document.getElementById('prizeName');
+            const prizeDescription = document.getElementById('prizeDescription');
+            const againButton = document.getElementById('againButton');
+            
+            // 搞笑的奖品选项
+            const prizes = [
+                {
+                    name: "老板的鼓励微笑",
+                    description: "老板将亲自给你一个鼓励的微笑，持续3秒！",
+                    icon: "fa-smile"
+                },
+                {
+                    name: "空气奖励一份",
+                    description: "获得最新鲜的空气一份，随时随地自由呼吸！",
+                    icon: "fa-wind"
+                },
+                {
+                    name: "加班一小时体验券",
+                    description: "体验加班的乐趣，感受深夜办公室的独特氛围！",
+                    icon: "fa-moon"
+                },
+                {
+                    name: "再来一次机会",
+                    description: "恭喜你，获得了再来一次的机会！",
+                    icon: "fa-redo"
+                },
+                {
+                    name: "免费摸鱼五分钟",
+                    description: "获得五分钟合法摸鱼时间，尽情放松！",
+                    icon: "fa-fish"
+                },
+                {
+                    name: "老板的拍肩鼓励",
+                    description: "老板将亲自拍拍你的肩膀，说声'加油'！",
+                    icon: "fa-hand-paper"
+                },
+                {
+                    name: "全公司通报表扬",
+                    description: "你的名字将在公司群里被点名表扬！",
+                    icon: "fa-bullhorn"
+                },
+                {
+                    name: "本月最佳员工提名",
+                    description: "获得本月最佳员工提名资格！",
+                    icon: "fa-award"
+                }
+            ];
+            
+            // 初始化转盘
+            function initWheel() {
+                wheel.innerHTML = '';
+                const angle = 360 / prizes.length;
+                
+                prizes.forEach((prize, index) => {
+                    const section = document.createElement('div');
+                    section.className = 'wheel-section';
+                    section.style.transform = `rotate(${index * angle}deg)`;
+                    
+                    const text = document.createElement('div');
+                    text.className = 'wheel-text';
+                    text.textContent = prize.name;
+                    section.appendChild(text);
+                    
+                    wheel.appendChild(section);
+                });
+            }
+            
+            // 创建五彩纸屑效果
+            function createConfetti() {
+                const colors = ['#FF6B8B', '#FFD166', '#06D6A0', '#118AB2', '#7209B7', '#F15BB5'];
+                
+                for (let i = 0; i < 150; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // 随机形状
+                    const shape = Math.random();
+                    if (shape < 0.3) {
+                        confetti.style.borderRadius = '50%';
+                    } else if (shape < 0.6) {
+                        confetti.style.borderRadius = '0';
+                    } else {
+                        confetti.style.borderRadius = '10px 0';
+                    }
+                    
+                    // 随机大小
+                    const size = Math.random() * 10 + 5;
+                    confetti.style.width = size + 'px';
+                    confetti.style.height = size + 'px';
+                    
+                    document.body.appendChild(confetti);
+                    
+                    // 设置动画
+                    const animationDuration = Math.random() * 3 + 2;
+                    confetti.style.animation = `fall ${animationDuration}s linear forwards`;
+                    
+                    // 动画结束后移除元素
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, animationDuration * 1000);
+                }
+                
+                // 添加CSS动画
+                if (!document.querySelector('#confetti-animation')) {
+                    const style = document.createElement('style');
+                    style.id = 'confetti-animation';
+                    style.textContent = `
+                        @keyframes fall {
+                            0% {
+                                top: -20px;
+                                opacity: 1;
+                                transform: rotate(0deg) scale(1);
+                            }
+                            100% {
+                                top: 100vh;
+                                opacity: 0;
+                                transform: rotate(${Math.random() * 360}deg) scale(0.5);
+                            }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+            
+            // 创建浮动元素
+            function createFloatingElements() {
+                const elements = ['🎉', '🎊', '🥳', '😜', '🤪', '🎁', '💫', '✨'];
+                
+                for (let i = 0; i < 15; i++) {
+                    const element = document.createElement('div');
+                    element.className = 'floating-element';
+                    element.textContent = elements[Math.floor(Math.random() * elements.length)];
+                    element.style.left = Math.random() * 90 + 5 + '%';
+                    element.style.top = Math.random() * 90 + 5 + '%';
+                    element.style.fontSize = (Math.random() * 2 + 1.5) + 'rem';
+                    
+                    document.querySelector('.result-page').appendChild(element);
+                    
+                    // 设置动画
+                    const animationDuration = Math.random() * 3 + 2;
+                    element.style.animation = `wobble ${Math.random() * 2 + 1}s infinite, appear 0.5s forwards, float ${animationDuration}s ease-in-out infinite`;
+                    
+                    // 添加浮动动画
+                    if (!document.querySelector('#float-animation')) {
+                        const style = document.createElement('style');
+                        style.id = 'float-animation';
+                        style.textContent = `
+                            @keyframes float {
+                                0%, 100% { transform: translateY(0) rotate(0deg); }
+                                50% { transform: translateY(-20px) rotate(10deg); }
+                            }
+                            @keyframes appear {
+                                0% { opacity: 0; transform: scale(0); }
+                                100% { opacity: 1; transform: scale(1); }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                }
+            }
+            
+            // 切换到结果页面
+            function showResultPage(prizeIndex) {
+                // 更新结果页面内容
+                prizeName.textContent = prizes[prizeIndex].name;
+                prizeDescription.textContent = prizes[prizeIndex].description;
+                
+                // 更新奖杯图标
+                const trophyIcon = document.querySelector('.trophy i');
+                trophyIcon.className = `fas ${prizes[prizeIndex].icon}`;
+                
+                // 添加动画类
+                lotteryPage.classList.remove('active');
+                lotteryPage.classList.add('inactive');
+                
+                setTimeout(() => {
+                    resultPage.style.display = 'flex';
+                    setTimeout(() => {
+                        resultPage.classList.add('active');
+                    }, 50);
+                }, 500);
+                
+                // 创建庆祝效果
+                createConfetti();
+                createFloatingElements();
+                
+                // 播放音效（模拟）
+                playSoundEffect();
+            }
+            
+            // 切换到抽奖页面
+            function showLotteryPage() {
+                resultPage.classList.remove('active');
+                
+                setTimeout(() => {
+                    resultPage.style.display = 'none';
+                    lotteryPage.classList.remove('inactive');
+                    lotteryPage.classList.add('active');
+                    
+                    // 清除浮动元素
+                    const floatingElements = document.querySelectorAll('.floating-element');
+                    floatingElements.forEach(el => el.remove());
+                }, 500);
+            }
+            
+            // 抽奖函数
+            function spinWheel() {
+                // 禁用按钮
+                spinButton.disabled = true;
+                
+                // 更新抽奖次数
+                let count = parseInt(countElement.textContent);
+                countElement.textContent = count + 1;
+                
+                // 随机决定旋转圈数和最终位置
+                const spins = 5 + Math.floor(Math.random() * 5); // 5-10圈
+                const randomPrize = Math.floor(Math.random() * prizes.length);
+                const angle = 360 - (randomPrize * (360 / prizes.length)) - (360 / prizes.length / 2);
+                const totalRotation = spins * 360 + angle;
+                
+                // 应用旋转
+                wheel.style.transform = `rotate(${totalRotation}deg)`;
+                
+                // 显示结果
+                setTimeout(() => {
+                    showResultPage(randomPrize);
+                    
+                    // 重新启用按钮
+                    setTimeout(() => {
+                        spinButton.disabled = false;
+                    }, 3000);
+                }, 4000);
+            }
+            
+            // 模拟音效
+            function playSoundEffect() {
+                // 在实际应用中，这里会播放音频文件
+                // 为了演示，我们只是创建一个振荡器来产生简单的音效
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = 300;
+                    gainNode.gain.value = 0.1;
+                    
+                    oscillator.start();
+                    
+                    // 音高变化
+                    oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.2);
+                    
+                    // 淡出
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    setTimeout(() => {
+                        oscillator.stop();
+                    }, 500);
+                } catch (e) {
+                    console.log("音频上下文不支持");
+                }
+            }
+            
+            // 初始化
+            initWheel();
+            
+            // 绑定事件
+            spinButton.addEventListener('click', spinWheel);
+            againButton.addEventListener('click', showLotteryPage);
+            
+            // 分享按钮事件
+            document.querySelector('.share-button').addEventListener('click', function() {
+                alert('已复制分享链接到剪贴板！快告诉朋友们你的好运吧！');
+            });
+        });
+    </script>
+</body>
+</html>
